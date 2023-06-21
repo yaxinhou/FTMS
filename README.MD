@@ -8,7 +8,7 @@ Yaxin Hou, Chongsheng Zhang. Deep Imbalance Learning via Fuzzy Theory and Multi-
  
 This work (FTMS) aims to 
 
-![sample results](model/model.png)
+![image](model/model.png)
 
 Abstract: 
 
