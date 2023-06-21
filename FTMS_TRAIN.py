@@ -113,18 +113,13 @@ class MultiCenterLoss(nn.Module):
         linear = self.linear[target_select.long(), :, :].view(-1, 1, self.n_center)  # (200, 1, 3)
         # bias = self.bias[labels.long(), :]
         bias = self.bias[target_select.long(), :].view(-1, self.n_center)  # (200, 3)
-
-        maps_detach_fc = torch.bmm(maps_detach_p.unsqueeze(1), linear).view(-1,
-                                                                            self.n_center) + bias  # (200, 1, 1) * (200, 1, 3) + (200, 3)
+        # (200, 1, 1) * (200, 1, 3) + (200, 3)
+        maps_detach_fc = torch.bmm(maps_detach_p.unsqueeze(1), linear).view(-1, self.n_center) + bias
         gamma = self.softmax(maps_detach_fc)  # (200, 3)
         # (200, 3, 1)→(200, 3, 1, 1)→(200, 3, 1, 64, 1)
-        # centers_ = self.centers[labels.long(), :, :]
-        centers_ = self.centers[target_select.long(), :, :].view(-1, self.n_center, 1) \
-            .unsqueeze(3).unsqueeze(4).repeat(1, 1, 1, maps_detach.size()[1], 1)
-        # (200, 3)→(200, 1 ,3) (200, 1 ,3)*( (200, 3, 1, 64, 1) - (200, 3, 1, 64, 1) )**2→(200, 1 ,3)*(200, 3, 64)→(200, 1, 64)
-        loss = torch.sum(torch.bmm(gamma.unsqueeze(1), torch.pow(
-            (x.unsqueeze(1).unsqueeze(1).unsqueeze(4).expand(-1, centers_.size()[1], -1, -1, -1) - centers_), 2).view(
-            x.size(0), self.n_center, -1))) / (x.size(0))
+        centers_ = self.centers[target_select.long(), :, :].view(-1, self.n_center, 64)
+        # (200, 3)→(200, 1 ,3) (200, 1 ,3)*( (200, 3, 64) - (200, 3, 64) )**2→(200, 1 ,3)*(200, 3, 64)→(200, 1, 64)
+        loss = torch.sum(torch.bmm(gamma.unsqueeze(1),torch.pow((x.unsqueeze(1).expand(-1, centers_.size()[1], -1) - centers_), 2).view(x.size(0), self.n_center, -1))) / (x.size(0))
 
         return loss
 
